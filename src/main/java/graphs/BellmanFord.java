@@ -1,13 +1,10 @@
 package graphs;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class BellmanFord {
-
-  private DirectedGraph graph;
+public class BellmanFord extends ShortestPath{
 
   public BellmanFord(DirectedGraph graph) {
     this.graph = graph;
@@ -15,15 +12,17 @@ public class BellmanFord {
 
   public List<Vertex> getShortestPath(Vertex source, Vertex dest) {
     Map<Vertex, Integer> costs = getCostMap(source);
-
-    if (costs.get(dest) == Integer.MAX_VALUE) return null;
-
     List<Vertex> retList = new ArrayList<>();
+    Edge minEdge = null;
+
     retList.add(source);
 
     if (source == dest) return retList;
+    if (graphHasNegativeCycle(costs))
+      throw new IllegalStateException("Graph cannot have negative cycles");
+    if (costs.get(dest) == Integer.MAX_VALUE)
+      throw new IllegalArgumentException("There are no valid paths from source to destination");
 
-    Edge minEdge = null;
     for (Edge e : graph.adjacencyTable().get(source).get())
       if (minEdge == null || e.weight() < minEdge.weight())
         minEdge = e;
@@ -32,27 +31,13 @@ public class BellmanFord {
     return retList;
   }
 
-  private Map<Vertex, Integer> getCostMap(Vertex source) {
-    Map<Vertex, Integer> ret = initCostMap(source);
-    for (int i = 0; i < ret.size() - 1; i++) {
-      relaxEdges(ret);
-    }
-    return ret;
-  }
 
-  private void relaxEdges(Map<Vertex, Integer> costMap) {
+  private boolean graphHasNegativeCycle(Map<Vertex, Integer> costMap) {
     for (Edge edge : graph.getEdges()) {
       if (costMap.get(edge.source()) + edge.weight() < costMap.get(edge.dest())) {
-        costMap.put(edge.dest(), costMap.get(edge.source()) + edge.weight());
+        return true;
       }
     }
-  }
-
-  private Map<Vertex, Integer> initCostMap(Vertex source) {
-    Map<Vertex, Integer> costMap = new HashMap<>();
-    graph.adjacencyTable().foreach(
-        kvp -> costMap.put(kvp._1, kvp._1 == source ? 0 : Integer.MAX_VALUE)
-    );
-    return costMap;
+    return false;
   }
 }
